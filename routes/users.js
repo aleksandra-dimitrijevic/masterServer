@@ -22,16 +22,11 @@ db.once("open", function () {
   
 
 const UserSchema = mongoose.Schema({
-    username: String,
     firstName:String,
     lastName:String,
     password:String,
     email:String,
     phone:String,
-    // car:{
-    //   registration: String,
-    //   type: String
-    // },
     status:Number,
     role:String
   });
@@ -39,73 +34,45 @@ const UserSchema = mongoose.Schema({
   // compile schema to model,
 const User = mongoose.model('User', UserSchema, 'User');
 
-// router.post('/',(req,res)=>{
-//       mongoose.model('User').findOne({username:req.body.username})
-//       .then(function(customer){
-//       if(customer) return  res.status(404).send("Already exists");
-//       var customer = new User({
-//         firstName: req.body.firstName, 
-//         username:req.body.username,
-//         password:req.body.password,
-//         lastName:req.body.lastName,
-//         email:req.body.email,
-//         phone:req.body.phone,
-//         car: {
-//             registration: req.body.registration,
-//             type: req.body.cartype
-//         },
-//         role:'user'
-//        });
+router.post('/',(req,res)=>{
+      mongoose.model('User').findOne({email:req.body.email.toLowerCase()})
+      .then(function(customer){
+      if(customer) {
+        return  res.status(404).send({msg: "Already exists"});
+      }
+      var customer = new User({
+        firstName: req.body.firstName, 
+        password:req.body.password,
+        lastName:req.body.lastName,
+        email:req.body.email.toLowerCase(),
+        phone:req.body.phone,
+        role:'user'
+       });
 
-//         // save model to database
-//         customer.save(function (err, p) {
-//           if (err) return console.error(err);
-//           console.log("Saved to  collection.");
-//         });
+        // save model to database
+        customer.save(function (err, p) {
+          if (err) return console.error(err);
+          console.log("Saved to  collection.");
+        });
        
-//         res.send({customer});
-//             })
+        res.send({customer});
+            })
    
-// });
-// router.post('/login', (req,res)=>{
-//     mongoose.model('User').findOne({username:req.body.username,password:req.body.password})
-//     .then(function(customer){
-//     if(!customer) return  res.status(404).send("Bad username or password");
-//     let status;
-//     if(customer.status==1){
-//        status=403;
-//        return res.send({status});}
-//     status=200;
-//     res.send({customer,status});
-//     })
-//     .catch(function(err) {
-//         // If an error occurred, send it to the client
-//         res.json(err);
-//       });;
-// });
+});
+router.post('/login', (req,res)=>{
+    mongoose.model('User').findOne({email:req.body.email.toLowerCase(), password:req.body.password})
+    .then(function(customer){
+        if(!customer) return  res.status(404).send({msg: "Bad username or password"});
+        res.send({customer});
+    })
+    .catch(function(err) {
+        // If an error occurred, send it to the client
+        res.json(err);
+      });;
+});
 
-router.get('/',function (req, res) {
-    var customer = new User({
-    firstName: "Aleksandra", 
-    username:'lexy',
-    password:'1Keksileksi!',
-    lastName:"Dimitrijevic",
-    email:'ad.aleksandra.d@gmail.com',
-    phone:'06490075645',
-    // car: {
-    //     registration: 'PK067OV',
-    //     type: 'MECKA'
-    // },
-    role:'user'
-    });
-
-    // save model to database
-    customer.save(function (err, p) {
-        if (err) return console.error(err);
-        console.log("Saved to  collection.");
-    });
-       
-    res.send({success:"USERS CERATE"});
+router.get('/',function (req, res) {   
+    res.send({success:"USERS GET"});
 })
 
 module.exports = router;
