@@ -7,54 +7,82 @@ const DBport = process.env.DB_PORT || '27017';
 
 var express = require('express');
 const mongoose = require("mongoose");
+var StopModel = require('./stops.js');
 
 mongoose.connect(`mongodb://${DBhost}:${DBport}/${DBname}`, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
+mongoose.set('debug', true)
 mongoose.Promise = global.Promise;
 const db = mongoose.connection;
 
 db.on("error", console.error.bind(console, "connection error:"));
 db.once("open", function () {
-    console.log("Connection Successful Rides!");
-  });
-
-const stopSchema = new mongoose.Schema({ 
-  latitude: Number,
-  longitude: Number
+  console.log("Connection Successful Rides!");
 });
-  
-const RideSchema = mongoose.Schema({
-    driver: {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
-    date: Date,
-    passengersNumber: Number,
-    stops: [stopSchema]
-  });
 
-  // compile schema to model,
+const RideSchema = mongoose.Schema({
+  driver: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  date: Date,
+  passengersNumber: Number,
+  stops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Stop' }]
+});
+
 const Ride = mongoose.model('Ride', RideSchema, 'Ride');
 
-router.post('/',(req,res)=>{
-      console.log(req.body.stops)
-      var ride = new Ride({
-        driver: req.body.driver, 
-        date:req.body.date,
-        passengersNumber:req.body.passengersNumber,
-        stops: req.body.stops
-       });
+router.post('/', async (req, res) => {
+  try {
+    const arr = [];
+    for (const [i,stop] of req.body.stops.entries()) {
+      var s = new StopModel({
+        location: { coordinates: [stop.longitude, stop.latitude] },
+        number: i
+      })
+      var savedStop = await s.save();
+      arr.push(savedStop._id);
+    }
+    
+    var ride = new Ride({
+      driver: req.body.driver,
+      date: req.body.date,
+      passengersNumber: req.body.passengersNumber,
+      stops: arr
+    });
 
-        // save model to database
-        ride.save(function (err, p) {
-          if (err) return console.error(err);
-          console.log("Saved to  collection.");
-        });
-       
-        res.send({ride});
+    var savedRide = await ride.save();
+    await StopModel.updateMany({_id: {$in: arr}}, { $set: { ride: savedRide._id } });
+    res.send({ ride: savedRide });
+
+  } catch (err) {
+    res.send({ err })
+  }
 });
 
-router.get('/',function (req, res) {   
-    res.send({success:"RIDES GET"});
+router.get('/driver', async function (req, res) {
+  try {
+    const rides = await Ride.find({ driver: req.query.driver }).populate('driver');
+    res.send({ rides });
+  } catch (err) {
+    res.send({ err })
+  }
+})
+
+router.get('/search', async function (req, res) {
+  try {
+    const stops = await StopModel.find({ location: { $geoWithin: { $centerSphere: [[req.query.long1, req.query.lat1], 0.3 / 3963.2] } } });
+    const response = []
+    for ( stop of stops){
+      stopFinish = await StopModel.find({ ride: stop.ride, number: {$gt: stop.number}, location: { $geoWithin: { $centerSphere: [[req.query.long2, req.query.lat2], 0.3 / 3963.2] } } }).populate('ride');
+      if(stopFinish.length){
+        response.push({start: stop.number, finish: stopFinish[0].number, ride: stopFinish[0].ride})
+      }
+    }
+    res.send({ response });
+  } catch (err) {
+    console.log(err)
+    res.send({ err })
+  }
 })
 
 module.exports = router;
