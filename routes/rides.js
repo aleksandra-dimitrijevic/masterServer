@@ -34,15 +34,16 @@ const Ride = mongoose.model('Ride', RideSchema, 'Ride');
 router.post('/', async (req, res) => {
   try {
     const arr = [];
-    for (const [i,stop] of req.body.stops.entries()) {
+    for (const [i, stop] of req.body.stops.entries()) {
       var s = new StopModel({
         location: { coordinates: [stop.longitude, stop.latitude] },
-        number: i
+        number: i,
+        label: stop.label
       })
       var savedStop = await s.save();
       arr.push(savedStop._id);
     }
-    
+
     var ride = new Ride({
       driver: req.body.driver,
       date: req.body.date,
@@ -51,7 +52,7 @@ router.post('/', async (req, res) => {
     });
 
     var savedRide = await ride.save();
-    await StopModel.updateMany({_id: {$in: arr}}, { $set: { ride: savedRide._id } });
+    await StopModel.updateMany({ _id: { $in: arr } }, { $set: { ride: savedRide._id } });
     res.send({ ride: savedRide });
 
   } catch (err) {
@@ -61,7 +62,7 @@ router.post('/', async (req, res) => {
 
 router.get('/driver', async function (req, res) {
   try {
-    const rides = await Ride.find({ driver: req.query.driver }).populate('driver');
+    const rides = await Ride.find({ driver: req.query.driver }).populate('driver').populate('stops');
     res.send({ rides });
   } catch (err) {
     res.send({ err })
@@ -72,10 +73,20 @@ router.get('/search', async function (req, res) {
   try {
     const stops = await StopModel.find({ location: { $geoWithin: { $centerSphere: [[req.query.long1, req.query.lat1], 0.3 / 3963.2] } } });
     const response = []
-    for ( stop of stops){
-      stopFinish = await StopModel.find({ ride: stop.ride, number: {$gt: stop.number}, location: { $geoWithin: { $centerSphere: [[req.query.long2, req.query.lat2], 0.3 / 3963.2] } } }).populate('ride');
-      if(stopFinish.length){
-        response.push({start: stop.number, finish: stopFinish[0].number, ride: stopFinish[0].ride})
+    for (stop of stops) {
+      stopFinish = await StopModel.find({ ride: stop.ride, number: { $gt: stop.number }, location: { $geoWithin: { $centerSphere: [[req.query.long2, req.query.lat2], 0.3 / 3963.2] } } })
+        .populate([{ 
+          path: 'ride',
+          populate: {path: 'stops' }
+        },
+        { 
+          path: 'ride',
+          populate: {path: 'driver' }
+        }
+      ]);
+
+      if (stopFinish.length) {
+        response.push({ start: stop.number, finish: stopFinish[0].number, ride: stopFinish[0].ride })
       }
     }
     res.send({ response });
