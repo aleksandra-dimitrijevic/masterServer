@@ -22,6 +22,7 @@ db.once("open", function () {
 
 const stopSchema = new mongoose.Schema({
   number: Number,
+  label: String,
   ride: {type: mongoose.Schema.Types.ObjectId, ref: 'Ride'},
   location: {
     type: { type: String, default: 'Point' },
