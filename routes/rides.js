@@ -70,23 +70,35 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.delete('/', async (req, res) => {
+  try {
+    const responseStops = await StopModel.deleteMany({ ride: req.body._id })
+    const response = await Ride.deleteOne({ _id: req.body._id });
+    res.send({ response })
+
+  } catch (err) {
+    res.send({ err })
+  }
+});
+
+
 router.post('/apply', async (req, res) => {
   try {
     // check if user is already applied to this ride
-    const ride = await Ride.findOne({_id: req.body._id});
-  
-    if(ride.availableSeats > 0){
+    const ride = await Ride.findOne({ _id: req.body._id });
+
+    if (ride.availableSeats > 0) {
       ride.passengers.push({
         user: req.body.user,
         start: req.body.start,
         finish: req.body.finish
       })
-      ride.availableSeats = ride.availableSeats -1;
+      ride.availableSeats = ride.availableSeats - 1;
       await ride.save()
-      res.send({msg: 'Successffully applied'})
+      res.send({ msg: 'Successffully applied' })
     }
 
-    else res.send({msg:'Sorry no seats available'})
+    else res.send({ msg: 'Sorry no seats available' })
 
   } catch (err) {
     res.send({ err })
@@ -95,9 +107,9 @@ router.post('/apply', async (req, res) => {
 
 router.post('/remove-passenger', async (req, res) => {
   try {
-    const ride = await Ride.updateOne({_id: req.body._id},{$pull:{ passengers :{ user: req.body.user}}, $inc:{availableSeats: 1}});
+    const ride = await Ride.updateOne({ _id: req.body._id }, { $pull: { passengers: { user: req.body.user } }, $inc: { availableSeats: 1 } });
     console.log(ride);
-    res.send({msg: 'Successffully declined passenger'})
+    res.send({ msg: 'Successffully declined passenger' })
 
   } catch (err) {
     res.send({ err })
@@ -106,14 +118,14 @@ router.post('/remove-passenger', async (req, res) => {
 
 router.get('/passenger', async function (req, res) {
   try {
-    const rides = await Ride.find({ 'passengers.user': {$in: req.query.passenger}}).populate('driver').populate([{ 
+    const rides = await Ride.find({ 'passengers.user': { $in: req.query.passenger } }).populate('driver').populate([{
       path: 'stops'
     },
-    { 
+    {
       path: 'passengers',
-      populate: {path: 'user' }
+      populate: { path: 'user' }
     }
-  ]);
+    ]);
     res.send({ rides });
   } catch (err) {
     res.send({ err })
@@ -123,14 +135,14 @@ router.get('/passenger', async function (req, res) {
 
 router.get('/driver', async function (req, res) {
   try {
-    const rides = await Ride.find({ driver: req.query.driver }).populate('driver').populate([{ 
+    const rides = await Ride.find({ driver: req.query.driver }).populate('driver').populate([{
       path: 'stops'
     },
-    { 
+    {
       path: 'passengers',
-      populate: {path: 'user' }
+      populate: { path: 'user' }
     }
-  ]);
+    ]);
     res.send({ rides });
   } catch (err) {
     res.send({ err })
@@ -144,15 +156,15 @@ router.get('/search', async function (req, res) {
     const response = []
     for (stop of stops) {
       stopFinish = await StopModel.find({ ride: stop.ride, number: { $gt: stop.number }, location: { $geoWithin: { $centerSphere: [[req.query.long2, req.query.lat2], 0.3 / 3963.2] } } })
-        .populate([{ 
+        .populate([{
           path: 'ride',
-          populate: {path: 'stops' }
+          populate: { path: 'stops' }
         },
-        { 
+        {
           path: 'ride',
-          populate: {path: 'driver' }
+          populate: { path: 'driver' }
         }
-      ]);
+        ]);
       if (stopFinish.length) {
         response.push({ start: stop.number, finish: stopFinish[0].number, ride: stopFinish[0].ride })
       }
