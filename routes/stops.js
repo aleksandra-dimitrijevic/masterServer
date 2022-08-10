@@ -8,7 +8,7 @@ mongoose.Promise = global.Promise;
 const stopSchema = new mongoose.Schema({
   number: Number,
   label: String,
-  ride: {type: mongoose.Schema.Types.ObjectId, ref: 'Ride'},
+  ride: { type: mongoose.Schema.Types.ObjectId, ref: 'Ride' },
   location: {
     type: { type: String, default: 'Point' },
     coordinates: [Number],

@@ -26,28 +26,28 @@ const User = mongoose.model('User', UserSchema, 'User');
 router.post('/', async (req, res) => {
   try {
     var user = await User.findOne({ email: req.body.email.toLowerCase() })
-      if (user) {
-        return res.status(404).send({ msg: "Already exists" });
-      }
-      //Encrypt user password
-      //encryptedPassword = await bcrypt.hash(req.body.password, 10);
+    if (user) {
+      return res.status(404).send({ msg: "Already exists" });
+    }
+    //Encrypt user password
+    //encryptedPassword = await bcrypt.hash(req.body.password, 10);
 
-      user = new User({
-        firstName: req.body.firstName,
-        password: req.body.password,
-        lastName: req.body.lastName,
-        email: req.body.email.toLowerCase(),
-        phone: req.body.phone,
-        role: 'user'
-      });
+    user = new User({
+      firstName: req.body.firstName,
+      password: req.body.password,
+      lastName: req.body.lastName,
+      email: req.body.email.toLowerCase(),
+      phone: req.body.phone,
+      role: 'user'
+    });
 
-      // save model to database
-      user.save(function (err, p) {
-        if (err) return console.error(err);
-        console.log("Saved to  collection.");
-      });
-      res.send({ user });
-  }catch (err) {
+    // save model to database
+    user.save(function (err, p) {
+      if (err) return console.error(err);
+      console.log("Saved to  collection.");
+    });
+    res.send({ user });
+  } catch (err) {
     // If an error occurred, send it to the client
     res.json(err);
   }

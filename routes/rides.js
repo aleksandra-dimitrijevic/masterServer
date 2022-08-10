@@ -119,7 +119,7 @@ router.get('/passenger', auth, async function (req, res) {
 })
 
 
-router.get('/driver', auth ,async function (req, res) {
+router.get('/driver', auth, async function (req, res) {
   try {
     const rides = await Ride.find({ driver: req.query.driver }).populate('driver').populate([{
       path: 'stops'
