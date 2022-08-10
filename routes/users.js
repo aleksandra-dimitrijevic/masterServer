@@ -1,6 +1,9 @@
 var express = require('express');
 const router = express.Router();
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
+const JWTsecret = process.env.JWT_SECRET || 'secret';
 const DBname = process.env.DB_NAME || 'drivegreen';
 const DBhost = process.env.DB_HOST || '127.0.0.1';
 const DBport = process.env.DB_PORT || '27017';
@@ -28,19 +31,23 @@ const UserSchema = mongoose.Schema({
   email: String,
   phone: String,
   status: Number,
-  role: String
+  role: String,
+  token: String
 });
 
 // compile schema to model,
 const User = mongoose.model('User', UserSchema, 'User');
 
-router.post('/', (req, res) => {
-  mongoose.model('User').findOne({ email: req.body.email.toLowerCase() })
-    .then(function (customer) {
-      if (customer) {
+router.post('/', async (req, res) => {
+  try {
+    var user = await User.findOne({ email: req.body.email.toLowerCase() })
+      if (user) {
         return res.status(404).send({ msg: "Already exists" });
       }
-      var customer = new User({
+      //Encrypt user password
+      //encryptedPassword = await bcrypt.hash(req.body.password, 10);
+
+      user = new User({
         firstName: req.body.firstName,
         password: req.body.password,
         lastName: req.body.lastName,
@@ -50,25 +57,38 @@ router.post('/', (req, res) => {
       });
 
       // save model to database
-      customer.save(function (err, p) {
+      user.save(function (err, p) {
         if (err) return console.error(err);
         console.log("Saved to  collection.");
       });
-
-      res.send({ customer });
-    })
-
+      res.send({ user });
+  }catch (err) {
+    // If an error occurred, send it to the client
+    res.json(err);
+  }
 });
-router.post('/login', (req, res) => {
-  mongoose.model('User').findOne({ email: req.body.email.toLowerCase(), password: req.body.password })
-    .then(function (customer) {
-      if (!customer) return res.status(404).send({ msg: "Bad username or password" });
-      res.send({ customer });
-    })
-    .catch(function (err) {
-      // If an error occurred, send it to the client
-      res.json(err);
-    });;
+router.post('/login', async (req, res) => {
+  //if (user && (await bcrypt.compare(password, user.password)))
+  try {
+    const user = await User.findOne({ email: req.body.email.toLowerCase(), password: req.body.password })
+    if (!user) return res.status(404).send({ msg: "Bad username or password" });
+    // Create token
+    const token = jwt.sign(
+      { user_id: user._id, email: user.email.toLowerCase() },
+      JWTsecret,
+      {
+        expiresIn: "2h",
+      }
+    );
+    // save user token
+    user.token = token;
+    await user.save();
+    res.send({ user });
+  }
+  catch (err) {
+    // If an error occurred, send it to the client
+    res.json(err);
+  }
 });
 
 router.get('/', function (req, res) {
