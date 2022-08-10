@@ -1,27 +1,13 @@
-var express = require('express');
+require("../config/database").connect();
+
+const express = require('express');
 const router = express.Router();
 const auth = require("../middleware/auth");
-
-const DBname = process.env.DB_NAME || 'drivegreen';
-const DBhost = process.env.DB_HOST || '127.0.0.1';
-const DBport = process.env.DB_PORT || '27017';
-
-var express = require('express');
 const mongoose = require("mongoose");
-var StopModel = require('./stops.js');
+const StopModel = require('./stops.js');
 
-mongoose.connect(`mongodb://${DBhost}:${DBport}/${DBname}`, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
 mongoose.set('debug', true)
 mongoose.Promise = global.Promise;
-const db = mongoose.connection;
-
-db.on("error", console.error.bind(console, "connection error:"));
-db.once("open", function () {
-  console.log("Connection Successful Rides!");
-});
 
 const passengerSchema = new mongoose.Schema({
   start: Number,

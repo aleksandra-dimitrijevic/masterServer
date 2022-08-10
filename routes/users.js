@@ -1,28 +1,13 @@
+require("../config/database").connect();
+const JWTsecret = process.env.JWT_SECRET || 'secret';
+
 var express = require('express');
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
-const JWTsecret = process.env.JWT_SECRET || 'secret';
-const DBname = process.env.DB_NAME || 'drivegreen';
-const DBhost = process.env.DB_HOST || '127.0.0.1';
-const DBport = process.env.DB_PORT || '27017';
-
-var express = require('express');
 const mongoose = require("mongoose");
 
-mongoose.connect(`mongodb://${DBhost}:${DBport}/${DBname}`, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
 mongoose.Promise = global.Promise;
-const db = mongoose.connection;
-
-db.on("error", console.error.bind(console, "connection error:"));
-db.once("open", function () {
-  console.log("Connection Successful Products!");
-});
-
 
 const UserSchema = mongoose.Schema({
   firstName: String,
@@ -87,6 +72,7 @@ router.post('/login', async (req, res) => {
   }
   catch (err) {
     // If an error occurred, send it to the client
+    console.log(err)
     res.json(err);
   }
 });
