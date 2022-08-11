@@ -6,6 +6,14 @@ const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
+const auth = require("../middleware/auth");
+
+const multer  = require('multer');
+const upload = multer({ dest: 'uploads/',
+  filename: function (req, file, cb) {
+  const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+  cb(null, file.fieldname + '-' + uniqueSuffix );
+}});
 
 mongoose.Promise = global.Promise;
 
@@ -17,7 +25,8 @@ const UserSchema = mongoose.Schema({
   phone: String,
   status: Number,
   role: String,
-  token: String
+  token: String,
+  image: String
 });
 
 // compile schema to model,
@@ -38,7 +47,7 @@ router.post('/', async (req, res) => {
       lastName: req.body.lastName,
       email: req.body.email.toLowerCase(),
       phone: req.body.phone,
-      role: 'user'
+      role: 'user',
     });
 
     // save model to database
@@ -77,8 +86,29 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.get('/', function (req, res) {
-  res.send({ success: "USERS GET" });
+router.patch('/:id', auth, async(req, res) => {
+  try {
+    var user = await User.findOneAndUpdate({_id: req.params.id}, {...req.body}, { new: true})
+    res.send({ user });
+  } catch (err) {
+    res.json(err);
+  }
 })
+
+router.post('/picture', upload.single('avatar'), async (req, res, next) => {
+  await User.findOneAndUpdate({_id: req.body.user}, {image: req.file.filename})
+  res.send({file: req.file.filename})
+})
+
+router.get('/picture/:name', async (req, res) => {
+  res.sendFile(
+    `./uploads/${req.params.name}`, { root: '.' }
+  );
+})
+
+// router.get('/', function (req, res) {
+//   res.send({ success: "USERS GET" });
+// })
+
 
 module.exports = router;
