@@ -17,6 +17,11 @@ const upload = multer({ dest: 'uploads/',
 
 mongoose.Promise = global.Promise;
 
+const rateSchema = new mongoose.Schema({
+  rate: Number,
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+});
+
 const UserSchema = mongoose.Schema({
   firstName: String,
   lastName: String,
@@ -26,7 +31,10 @@ const UserSchema = mongoose.Schema({
   status: Number,
   role: String,
   token: String,
-  image: String
+  image: String,
+  score: Number,
+  ratesNumber: Number,
+  rates: [rateSchema]
 });
 
 // compile schema to model,
@@ -48,6 +56,9 @@ router.post('/', async (req, res) => {
       email: req.body.email.toLowerCase(),
       phone: req.body.phone,
       role: 'user',
+      ratesNumber:0,
+      score:0,
+      rates:[]
     });
 
     // save model to database
@@ -89,6 +100,32 @@ router.post('/login', async (req, res) => {
 router.patch('/:id', auth, async(req, res) => {
   try {
     var user = await User.findOneAndUpdate({_id: req.params.id}, {...req.body}, { new: true})
+    res.send({ user });
+  } catch (err) {
+    res.json(err);
+  }
+})
+
+router.patch('/rate/:id', auth, async(req, res) => {
+  try {
+    const {userRated, rate} = req.body
+    var user = await User.findOne({_id: req.params.id})
+    if(!user) res.send({msg:'User not found!'})
+    const rateIndex = user.rates.findIndex( r => r.user == userRated)
+    if(rateIndex != -1){
+      user.score += rate - user.rates[rateIndex].rate;
+      user.rates[rateIndex].rate = rate;
+    } else {
+      user.score += rate;
+      user.ratesNumber += 1;
+      user.rates.push({
+        user: userRated,
+        rate
+      })
+    }
+
+    await user.save()
+
     res.send({ user });
   } catch (err) {
     res.json(err);
