@@ -34,7 +34,12 @@ const UserSchema = mongoose.Schema({
   image: String,
   score: Number,
   ratesNumber: Number,
-  rates: [rateSchema]
+  rates: [rateSchema],
+  car: {
+    model: String,
+    color: String,
+    registration: String
+  }
 });
 
 // compile schema to model,
