@@ -87,7 +87,7 @@ router.post('/login', async (req, res) => {
       { user_id: user._id, email: user.email.toLowerCase() },
       JWTsecret,
       {
-        expiresIn: "2h",
+        expiresIn: "12h",
       }
     );
     // save user token
@@ -147,10 +147,5 @@ router.get('/picture/:name', async (req, res) => {
     `./uploads/${req.params.name}`, { root: '.' }
   );
 })
-
-// router.get('/', function (req, res) {
-//   res.send({ success: "USERS GET" });
-// })
-
 
 module.exports = router;
