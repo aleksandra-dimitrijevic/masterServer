@@ -30,6 +30,10 @@ const Ride = mongoose.model('Ride', RideSchema, 'Ride');
 router.post('/', auth, async (req, res) => {
   try {
     const arr = [];
+    if(req.body.stops.length<2){
+      res.status(400).send({msg:'You need two stations minimum to add ride!'})
+      return
+    }
     for (const [i, stop] of req.body.stops.entries()) {
       var s = new StopModel({
         location: { coordinates: [stop.longitude, stop.latitude] },
