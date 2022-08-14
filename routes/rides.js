@@ -1,6 +1,7 @@
 require("../config/database").connect();
 
 const express = require('express');
+const moment = require('moment')
 const router = express.Router();
 const auth = require("../middleware/auth");
 const mongoose = require("mongoose");
@@ -33,7 +34,8 @@ router.post('/', auth, async (req, res) => {
       var s = new StopModel({
         location: { coordinates: [stop.longitude, stop.latitude] },
         number: i,
-        label: stop.label
+        label: stop.label,
+        date: req.body.date,
       })
       var savedStop = await s.save();
       arr.push(savedStop._id);
@@ -71,21 +73,26 @@ router.delete('/', auth, async (req, res) => {
 
 router.post('/apply', auth, async (req, res) => {
   try {
-    // check if user is already applied to this ride
+    const { user, start, finish } = req.body
     const ride = await Ride.findOne({ _id: req.body._id });
+    const passenger = ride.passengers.find(passenger => passenger.user == req.body.user)
 
+    if (passenger !== undefined) {
+      res.status(409).send({ msg: 'You are already applied!' })
+      return;
+    }
     if (ride.availableSeats > 0) {
       ride.passengers.push({
-        user: req.body.user,
-        start: req.body.start,
-        finish: req.body.finish
+        user,
+        start,
+        finish
       })
       ride.availableSeats = ride.availableSeats - 1;
       await ride.save()
       res.send({ msg: 'Successffully applied' })
     }
 
-    else res.send({ msg: 'Sorry no seats available' })
+    else res.status(409).send({ msg: 'Sorry no seats available' })
 
   } catch (err) {
     res.send({ err })
@@ -104,7 +111,7 @@ router.post('/remove-passenger', auth, async (req, res) => {
 
 router.get('/passenger', auth, async function (req, res) {
   try {
-    const rides = await Ride.find({ 'passengers.user': { $in: req.query.passenger } }).populate('driver').populate([{
+    const rides = await Ride.find({ 'passengers.user': { $in: req.query.passenger } }).sort([['date', -1]]).populate('driver').populate([{
       path: 'stops'
     },
     {
@@ -121,7 +128,7 @@ router.get('/passenger', auth, async function (req, res) {
 
 router.get('/driver', auth, async function (req, res) {
   try {
-    const rides = await Ride.find({ driver: req.query.driver }).populate('driver').populate([{
+    const rides = await Ride.find({ driver: req.query.driver }).populate('driver').sort([['date', -1]]).populate([{
       path: 'stops'
     },
     {
@@ -136,9 +143,18 @@ router.get('/driver', auth, async function (req, res) {
 })
 
 router.get('/search', auth, async function (req, res) {
-  // filter available seats and date
+  // filter available seats
   try {
-    const stops = await StopModel.find({ location: { $geoWithin: { $centerSphere: [[req.query.long1, req.query.lat1], 0.3 / 3963.2] } } });
+    const dateSerach = moment(new Date(req.query.date))
+    const stops = await StopModel.find({
+      date: {
+        $gte: dateSerach.startOf('day').toDate(),
+        $lte: dateSerach.endOf('day').toDate()
+      },
+      location: {
+        $geoWithin: { $centerSphere: [[req.query.long1, req.query.lat1], 0.3 / 3963.2] }
+      }
+    }).sort([['date', 1]]);
     const response = []
     for (stop of stops) {
       stopFinish = await StopModel.find({ ride: stop.ride, number: { $gt: stop.number }, location: { $geoWithin: { $centerSphere: [[req.query.long2, req.query.lat2], 0.3 / 3963.2] } } })

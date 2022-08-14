@@ -12,7 +12,8 @@ const stopSchema = new mongoose.Schema({
   location: {
     type: { type: String, default: 'Point' },
     coordinates: [Number],
-  }
+  },
+  date: Date
 });
 stopSchema.index({ location: "2dsphere" })
 
