@@ -101,6 +101,16 @@ router.post('/login', async (req, res) => {
   }
 });
 
+
+router.get('/:id', auth, async (req, res) => {
+  try {
+    var user = await User.findOne({ _id: req.params.id })
+    res.send({ user });
+  } catch (err) {
+    res.json(err);
+  }
+})
+
 router.patch('/:id', auth, async (req, res) => {
   try {
     var user = await User.findOneAndUpdate({ _id: req.params.id }, { ...req.body }, { new: true })
