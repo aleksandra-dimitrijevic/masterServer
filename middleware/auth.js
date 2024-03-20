@@ -1,3 +1,4 @@
+
 const jwt = require("jsonwebtoken");
 const JWTsecret = process.env.JWT_SECRET || 'secret';
 
@@ -10,7 +11,6 @@ const verifyToken = (req, res, next) => {
     const decoded = jwt.verify(token, JWTsecret);
     req.user = decoded;
   } catch (err) {
-    console.log(err)
     return res.status(401).send({msg: "Invalid Token, please log in."});
   }
   return next();

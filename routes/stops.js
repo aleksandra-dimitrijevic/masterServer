@@ -15,6 +15,7 @@ const stopSchema = new mongoose.Schema({
   },
   date: Date
 });
+
 stopSchema.index({ location: "2dsphere" })
 
 module.exports = mongoose.model('Stop', stopSchema, 'Stop');

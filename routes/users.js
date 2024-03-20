@@ -51,9 +51,9 @@ router.post('/', async (req, res) => {
   try {
     var user = await User.findOne({ email: req.body.email.toLowerCase() })
     if (user) {
-      return res.status(404).send({ msg: "Already exists" });
+      return res.status(404).send({ msg: "Username already exists" });
     }
-    
+
     encryptedPassword = await bcrypt.hash(req.body.password, 10);
 
     user = new User({
@@ -75,6 +75,7 @@ router.post('/', async (req, res) => {
     res.json(err);
   }
 });
+
 router.post('/login', async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email.toLowerCase() })
@@ -88,15 +89,12 @@ router.post('/login', async (req, res) => {
           expiresIn: "12h",
         }
       );
-
       user.token = token;
-      await user.save();
       res.send({ user });
     } else return res.status(404).send({ msg: "Bad username or password" });
 
   }
   catch (err) {
-    console.log(err)
     res.json(err);
   }
 });
@@ -123,7 +121,7 @@ router.patch('/:id', auth, async (req, res) => {
 router.patch('/password/:id', auth, async (req, res) => {
   try {
     encryptedPassword = await bcrypt.hash(req.body.password, 10);
-    var user = await User.findOneAndUpdate({ _id: req.params.id }, { password: encryptedPassword}, { new: true })
+    var user = await User.findOneAndUpdate({ _id: req.params.id }, { password: encryptedPassword }, { new: true })
     res.send({ user });
   } catch (err) {
     console.log(err)

@@ -7,6 +7,7 @@ const auth = require("../middleware/auth");
 const mongoose = require("mongoose");
 const StopModel = require('./stops.js');
 
+const EARTH_RADIUS = 6371;
 mongoose.set('debug', true)
 mongoose.Promise = global.Promise;
 
@@ -30,8 +31,8 @@ const Ride = mongoose.model('Ride', RideSchema, 'Ride');
 router.post('/', auth, async (req, res) => {
   try {
     const arr = [];
-    if(req.body.stops.length<2){
-      res.status(400).send({msg:'You need two stations minimum to add ride!'})
+    if (req.body.stops.length < 2) {
+      res.status(400).send({ msg: 'You need two stations minimum to add ride!' })
       return
     }
     for (const [i, stop] of req.body.stops.entries()) {
@@ -147,21 +148,31 @@ router.get('/driver', auth, async function (req, res) {
 })
 
 router.get('/search', auth, async function (req, res) {
-  // filter available seats
+
   try {
+    const { long1, lat1, long2, lat2 } = req.query;
     const dateSerach = moment(new Date(req.query.date))
+
     const stops = await StopModel.find({
       date: {
         $gte: dateSerach.startOf('day').toDate(),
         $lte: dateSerach.endOf('day').toDate()
       },
       location: {
-        $geoWithin: { $centerSphere: [[req.query.long1, req.query.lat1], 0.3 / 3963.2] }
+        $geoWithin: { $centerSphere: [[long1, lat1], 0.5 / EARTH_RADIUS] }
       }
     }).sort([['date', 1]]);
+
     const response = []
+
     for (stop of stops) {
-      stopFinish = await StopModel.find({ ride: stop.ride, number: { $gt: stop.number }, location: { $geoWithin: { $centerSphere: [[req.query.long2, req.query.lat2], 0.3 / 3963.2] } } })
+      stopFinish = await StopModel.find({
+        ride: stop.ride,
+        number: { $gt: stop.number },
+        location: {
+          $geoWithin: { $centerSphere: [[long2, lat2], 0.5 / EARTH_RADIUS] }
+        }
+      })
         .populate([{
           path: 'ride',
           populate: { path: 'stops' }
@@ -176,8 +187,8 @@ router.get('/search', auth, async function (req, res) {
       }
     }
     res.send({ response });
+
   } catch (err) {
-    console.log(err)
     res.send({ err })
   }
 })
